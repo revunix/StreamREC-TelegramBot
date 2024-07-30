@@ -34,7 +34,7 @@ The script requires a `config.json` file for setup. This file should contain:
 - `telebot`: For Telegram bot interaction.
 - `websockets`: For handling WebSocket connections (if needed).
 - `json`, `os`, `re`, `subprocess`, `time`, `threading`, `hashlib`: Standard Python libraries used in the script.
-- `streamlink`: For recording Twitch streams.
+- `streamlink`: For recording Twitch streams. (You need the [streamlink-ttvlol](https://github.com/2bc4/streamlink-ttvlol/) plugin, i'm using a AdBlock Proxy!)
 - `yt-dlp`: For recording YouTube and Q-dance streams.
 
 ## Installation
