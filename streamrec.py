@@ -264,15 +264,44 @@ def save(message):
 @bot.message_handler(commands=['add'])
 def add(message):
     if str(message.chat.id) == TELEGRAM_CHAT_ID:
-        markup = telebot.types.ReplyKeyboardMarkup(row_width=1)
-        item1 = telebot.types.KeyboardButton('Add Twitch Stream')
-        item2 = telebot.types.KeyboardButton('Add YouTube Stream')
-        item3 = telebot.types.KeyboardButton('Add Q-dance Stream')
-        markup.add(item1, item2, item3)
-        bot.send_message(message.chat.id, "Select the type of stream to add:", reply_markup=markup)
-        bot.register_next_step_handler(message, process_add_selection)
+        bot.send_message(message.chat.id, "Please send the URL you want to add.")
+        bot.register_next_step_handler(message, process_add_url)
     else:
         bot.send_message(message.chat.id, "Unauthorized access.")
+
+def process_add_url(message):
+    url = message.text.strip()
+    if not url:
+        bot.send_message(message.chat.id, "Invalid URL. Please use /add to start over.")
+        return
+
+    # Shorten the URL
+    short_url = shorten_url(url)
+
+    # Add URL to the appropriate stream type based on user input (adjust as needed)
+    # Example: Assuming user input indicates stream type
+    stream_type = 'twitch'  # This should be determined based on user input or context
+
+    if stream_type == 'twitch':
+        stream_list = config['twitch_streams']
+    elif stream_type == 'youtube':
+        stream_list = config['youtube_streams']
+    elif stream_type == 'qdance':
+        stream_list = config['qdance_streams']
+    else:
+        bot.send_message(message.chat.id, "Invalid stream type. Please use /add to start over.")
+        return
+
+    # Check if the URL already exists
+    if any(stream['url'] == url for stream in stream_list):
+        bot.send_message(message.chat.id, "URL already exists in the list.")
+        return
+
+    # Add URL to the list
+    stream_list.append({'url': url})
+    save_config(config)  # Save the updated configuration
+
+    bot.send_message(message.chat.id, f"URL `{url}` has been added to the {stream_type} streams.")
 
 def process_add_selection(message):
     stream_type = message.text
@@ -397,17 +426,21 @@ def handle_main_menu_options(message):
 def show_delete_menu(chat_id):
     markup = telebot.types.InlineKeyboardMarkup(row_width=1)
     
-    # Erstelle Inline-Buttons für jede Stream-URL
+    # Add Twitch streams
     for stream in config['twitch_streams']:
         url = stream['url']
         short_url = shorten_url(url)
         button = telebot.types.InlineKeyboardButton(text=url, callback_data=f'del_twitch_{short_url}')
         markup.add(button)
+    
+    # Add YouTube streams
     for stream in config['youtube_streams']:
-        url = stream['url']
-        short_url = shorten_url(url)
-        button = telebot.types.InlineKeyboardButton(text=url, callback_data=f'del_youtube_{short_url}')
+        video_id = stream['url']
+        short_url = shorten_url(video_id)  # Shorten YouTube video IDs as well
+        button = telebot.types.InlineKeyboardButton(text=video_id, callback_data=f'del_youtube_{short_url}')
         markup.add(button)
+    
+    # Add Q-dance streams
     for stream in config['qdance_streams']:
         url = stream['url']
         short_url = shorten_url(url)
@@ -433,25 +466,26 @@ def remove(message):
 def handle_delete_callback(call):
     _, stream_type, short_url = call.data.split('_', 2)
     
-    # Debug-Ausgaben hinzufügen
-    print(f"Received callback data: {call.data}")
-    print(f"Parsed stream_type: {stream_type}, short_url: {short_url}")
+    # Get the correct list based on stream type
+    if stream_type == 'twitch':
+        stream_list = config['twitch_streams']
+    elif stream_type == 'youtube':
+        stream_list = config['youtube_streams']
+    elif stream_type == 'qdance':
+        stream_list = config['qdance_streams']
+    else:
+        bot.answer_callback_query(call.id, "Invalid stream type.")
+        return
     
-    url = None
-    for stream in config.get(f'{stream_type}_streams', []):
-        stream_url = stream['url']
-        stream_short_url = shorten_url(stream_url)
-        print(f"Checking stream URL: {stream_url}, Shortened: {stream_short_url}, Target Short URL: {short_url}")
-        if stream_short_url == short_url:
-            url = stream_url
-            break
-    
-    print(f"Short URL: {short_url}, Found URL: {url}")
+    # Convert short URL back to the original URL
+    url = next((stream['url'] for stream in stream_list if shorten_url(stream['url']) == short_url), None)
     
     if url:
-        config[f'{stream_type}_streams'] = [stream for stream in config[f'{stream_type}_streams'] if stream['url'] != url]
-        save_config(config)
+        # Remove the URL from the list
+        config[f'{stream_type}_streams'] = [stream for stream in stream_list if stream['url'] != url]
+        save_config(config)  # Save the updated configuration
         
+        # Confirm deletion
         bot.edit_message_text(
             chat_id=call.message.chat.id,
             message_id=call.message.message_id,
@@ -459,6 +493,7 @@ def handle_delete_callback(call):
             parse_mode='Markdown'
         )
         
+        # Show the updated delete menu
         show_delete_menu(call.message.chat.id)
         
     else:
