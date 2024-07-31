@@ -264,8 +264,14 @@ def save(message):
 @bot.message_handler(commands=['add'])
 def add(message):
     if str(message.chat.id) == TELEGRAM_CHAT_ID:
-        bot.send_message(message.chat.id, "Please send the URL you want to add.")
-        bot.register_next_step_handler(message, process_add_url)
+        bot.send_message(message.chat.id, "Please select the type of stream you want to add:", reply_markup=telebot.types.ReplyKeyboardRemove())
+        markup = telebot.types.ReplyKeyboardMarkup(row_width=1, resize_keyboard=True)
+        item1 = telebot.types.KeyboardButton('Add Twitch Stream')
+        item2 = telebot.types.KeyboardButton('Add YouTube Stream')
+        item3 = telebot.types.KeyboardButton('Add Q-dance Stream')
+        markup.add(item1, item2, item3)
+        bot.send_message(message.chat.id, "Select the type of stream to add:", reply_markup=markup)
+        bot.register_next_step_handler(message, process_add_selection)
     else:
         bot.send_message(message.chat.id, "Unauthorized access.")
 
@@ -359,14 +365,6 @@ def add_qdance_stream(message):
         bot.send_message(TELEGRAM_CHAT_ID, "Invalid Q-dance URL. Please try again.")
     show_main_menu(message.chat.id)  # Return to the main menu
 
-# Befehl zum Anzeigen des Menüs
-@bot.message_handler(commands=['menu'])
-def show_menu(message):
-    if str(message.chat.id) == TELEGRAM_CHAT_ID:
-        show_delete_menu(message.chat.id)
-    else:
-        bot.send_message(message.chat.id, "Unauthorized access.")
-
 @bot.message_handler(func=lambda message: message.text in ['Start Recording', 'Add Stream', 'Delete Stream', 'List Streams', 'Stop Recording', 'Status', 'Confirm Stop', 'Cancel', 'Donate'])
 def handle_main_menu_options(message):
     if str(message.chat.id) == TELEGRAM_CHAT_ID:
@@ -422,6 +420,21 @@ def handle_main_menu_options(message):
 
     else:
         bot.send_message(message.chat.id, "Unauthorized access.")
+
+# Befehl zum Anzeigen des Menüs
+@bot.message_handler(commands=['menu'])
+def show_menu(message):
+    if str(message.chat.id) == TELEGRAM_CHAT_ID:
+        markup = telebot.types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
+        item1 = telebot.types.KeyboardButton('Start Recording')
+        item2 = telebot.types.KeyboardButton('Add Stream')
+        item3 = telebot.types.KeyboardButton('Delete Stream')
+        item4 = telebot.types.KeyboardButton('List Streams')
+        item5 = telebot.types.KeyboardButton('Status')
+        item6 = telebot.types.KeyboardButton('Donate')
+        markup.add(item1, item2, item3, item4, item5, item6)
+        
+        bot.send_message(message.chat.id, "Please select an option:", reply_markup=markup)
 
 def show_delete_menu(chat_id):
     markup = telebot.types.InlineKeyboardMarkup(row_width=1)
