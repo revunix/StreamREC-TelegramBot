@@ -347,7 +347,6 @@ def handle_main_menu_options(message):
             show_stop_menu(message.chat.id)  # Show the stop menu after starting recordings
 
         elif message.text == 'Add Stream':
-            # Remove the current keyboard and prompt the user for stream type
             bot.send_message(message.chat.id, "Please provide the type of stream you want to add:", reply_markup=telebot.types.ReplyKeyboardRemove())
             markup = telebot.types.ReplyKeyboardMarkup(row_width=1, resize_keyboard=True)
             item1 = telebot.types.KeyboardButton('Add Twitch Stream')
@@ -355,6 +354,7 @@ def handle_main_menu_options(message):
             item3 = telebot.types.KeyboardButton('Add Q-dance Stream')
             markup.add(item1, item2, item3)
             bot.send_message(message.chat.id, "Select the type of stream to add:", reply_markup=markup)
+            bot.register_next_step_handler(message, process_add_selection)
 
         elif message.text == 'Delete Stream':
             show_delete_menu(message.chat.id)  # Show the delete menu
@@ -391,7 +391,7 @@ def handle_main_menu_options(message):
 
     else:
         bot.send_message(message.chat.id, "Unauthorized access.")
-
+        
 def show_delete_menu(chat_id):
     markup = telebot.types.InlineKeyboardMarkup(row_width=1)
     
@@ -532,45 +532,6 @@ def status(message):
     else:
         bot.send_message(message.chat.id, "Unauthorized access.")
 
-@bot.message_handler(func=lambda message: message.text in ['Start Recording', 'Add Stream', 'Delete Stream', 'List Streams'])
-def handle_main_menu_options(message):
-    if str(message.chat.id) == TELEGRAM_CHAT_ID:
-        if message.text == 'Start Recording':
-            # Beginne die Aufnahmen wieder
-            start_twitch_recordings()
-            start_youtube_recordings()
-            start_qdance_recordings()
-            bot.send_message(message.chat.id, "Recording started for all streams.")
-            
-            # Zeige das Hauptmenü erneut an
-            markup = telebot.types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
-            item1 = telebot.types.KeyboardButton('Start Recording')
-            item2 = telebot.types.KeyboardButton('Add Stream')
-            item3 = telebot.types.KeyboardButton('Delete Stream')
-            item4 = telebot.types.KeyboardButton('List Streams')
-            markup.add(item1, item2, item3, item4)
-            bot.send_message(message.chat.id, "Select an option:", reply_markup=markup)
-        
-        elif message.text == 'Add Stream':
-            bot.send_message(message.chat.id, "Please provide the type of stream you want to add:", reply_markup=telebot.types.ReplyKeyboardRemove())
-            
-            # Menü für die Stream-Auswahl nachfolgend anzeigen
-            markup = telebot.types.ReplyKeyboardMarkup(row_width=1, resize_keyboard=True)
-            item1 = telebot.types.KeyboardButton('Add Twitch Stream')
-            item2 = telebot.types.KeyboardButton('Add YouTube Stream')
-            item3 = telebot.types.KeyboardButton('Add Q-dance Stream')
-            markup.add(item1, item2, item3)
-        
-        bot.send_message(message.chat.id, "Select the type of stream to add:", reply_markup=markup)
-        
-        elif message.text == 'Delete Stream':
-            bot.send_message(message.chat.id, "Please use /remove to delete a stream.")
-        
-        elif message.text == 'List Streams':
-            list_streams(message)
-        
-    else:
-        bot.send_message(message.chat.id, "Unauthorized access.")
 
 @bot.message_handler(commands=['help'])
 def help(message):
