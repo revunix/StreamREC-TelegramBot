@@ -21,11 +21,11 @@ The script requires a `config.json` file for setup. This file should contain:
 
 ## How to Use
 
-1. **Start Recording**: Use the `/rec_start` command to begin recording all streams listed in the configuration.
-2. **Stop Recording**: Use the `/rec_stop` command to stop all active recordings.
+1. **Start Recording**: Use the `/record` command to begin recording all streams listed in the configuration.
+2. **Stop Recording**: Use the `/save` command to stop all active recordings.
 3. **Add a Stream**: Use the `/add` command and follow the prompts to add Twitch, YouTube, or Q-dance streams.
 4. **Delete a Stream**: Use the `/remove` command to delete a specific stream.
-5. **List Streams**: Use the `/list_streams` command to view all configured streams.
+5. **List Streams**: Use the `/list` command to view all configured streams.
 6. **Check Status**: Use the `/status` command to get the status of ongoing recordings.
 7. **Help**: Use the `/help` command to get a list of available commands and their usage.
 
