@@ -10,6 +10,7 @@ import hashlib
 from threading import Thread
 from datetime import datetime
 
+
 # Lade Konfiguration
 def load_config():
     with open('config.json', 'r') as f:
@@ -172,8 +173,8 @@ def start_qdance_recordings():
         path = os.path.join(RECORDING_PATH, 'qdance_{}_{}.mp4'.format(url.split('/')[-1], timestamp))
         Thread(target=record_qdance_stream, args=(url, path, QDANCE_USERNAME, QDANCE_PASSWORD, datetime.now())).start()
 
-@bot.message_handler(commands=['rec_start'])
-def rec_start(message):
+@bot.message_handler(commands=['record'])
+def record(message):
     if str(message.chat.id) == TELEGRAM_CHAT_ID:
         # Starte die Aufnahme-Threads für alle Streams
         start_twitch_recordings()
@@ -203,7 +204,7 @@ def rec_start(message):
         bot.send_message(message.chat.id, "Unauthorized access.")
 
 @bot.message_handler(func=lambda message: message.text in ['Stop Streams', 'Status'])
-def handle_rec_start_options(message):
+def handle_record_options(message):
     if str(message.chat.id) == TELEGRAM_CHAT_ID:
         if message.text == 'Stop Streams':
             markup = telebot.types.ReplyKeyboardMarkup(row_width=1)
@@ -246,12 +247,12 @@ def confirm_stop_streams(message):
             markup.add(item1, item2)
             bot.send_message(message.chat.id, "Select an option:", reply_markup=markup)
         else:
-            bot.send_message(message.chat.id, "Invalid option. Use /rec_start to start over.")
+            bot.send_message(message.chat.id, "Invalid option. Use /record to start over.")
     else:
         bot.send_message(message.chat.id, "Unauthorized access.")
 
-@bot.message_handler(commands=['rec_stop'])
-def rec_stop(message):
+@bot.message_handler(commands=['save'])
+def save(message):
     if str(message.chat.id) == TELEGRAM_CHAT_ID:
         for recording in active_recordings.values():
             recording['process'].terminate()
@@ -360,7 +361,7 @@ def handle_main_menu_options(message):
             show_delete_menu(message.chat.id)  # Show the delete menu
 
         elif message.text == 'List Streams':
-            list_streams(message)
+            list(message)
 
         elif message.text == 'Stop Recording':
             markup = telebot.types.ReplyKeyboardMarkup(row_width=1, resize_keyboard=True)
@@ -391,7 +392,7 @@ def handle_main_menu_options(message):
 
     else:
         bot.send_message(message.chat.id, "Unauthorized access.")
-        
+
 def show_delete_menu(chat_id):
     markup = telebot.types.InlineKeyboardMarkup(row_width=1)
     
@@ -494,8 +495,8 @@ def handle_delete_callback(call):
     
     bot.answer_callback_query(call.id)
 
-@bot.message_handler(commands=['list_streams'])
-def list_streams(message):
+@bot.message_handler(commands=['list'])
+def list(message):
     if str(message.chat.id) == TELEGRAM_CHAT_ID:
         response = "Current Streams:\n"
         
@@ -538,11 +539,11 @@ def help(message):
     if str(message.chat.id) == TELEGRAM_CHAT_ID:
         help_text = (
             "Available Commands:\n"
-            "/rec_start - Start recording for all streams listed.\n"
-            "/rec_stop - Stop all ongoing recordings.\n"
+            "/record - Start recording for all streams listed.\n"
+            "/save - Stop all ongoing recordings.\n"
             "/add - Add a new stream URL. You will be prompted to select the type of stream (Twitch, YouTube, Q-dance).\n"
             "/remove - Delete an existing stream URL. You will be prompted to select the type of stream (Twitch, YouTube, Q-dance).\n"
-            "/list_streams - List all currently configured streams.\n"
+            "/list - List all currently configured streams.\n"
             "/status - Show the status of ongoing recordings.\n"
             "/help - Display this help message."
         )
