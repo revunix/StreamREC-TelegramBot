@@ -330,10 +330,11 @@ def add_qdance_stream(message):
         bot.send_message(TELEGRAM_CHAT_ID, "Invalid Q-dance URL. Please try again.")
     show_main_menu(message.chat.id)  # Return to the main menu
 
+# Befehl zum Anzeigen des Menüs
 @bot.message_handler(commands=['menu'])
-def menu(message):
+def show_menu(message):
     if str(message.chat.id) == TELEGRAM_CHAT_ID:
-        show_main_menu(message.chat.id)
+        show_delete_menu(message.chat.id)
     else:
         bot.send_message(message.chat.id, "Unauthorized access.")
 
@@ -403,8 +404,9 @@ def show_delete_menu(chat_id):
         button = telebot.types.InlineKeyboardButton(text=url, callback_data=f'del_twitch_{short_url}')
         markup.add(button)
     for stream in config['youtube_streams']:
-        video_id = stream['url']
-        button = telebot.types.InlineKeyboardButton(text=video_id, callback_data=f'del_youtube_{video_id}')
+        url = stream['url']
+        short_url = shorten_url(url)
+        button = telebot.types.InlineKeyboardButton(text=url, callback_data=f'del_youtube_{short_url}')
         markup.add(button)
     for stream in config['qdance_streams']:
         url = stream['url']
@@ -415,47 +417,41 @@ def show_delete_menu(chat_id):
     bot.send_message(chat_id, "Select a stream to delete:", reply_markup=markup)
 
 def shorten_url(url):
-    return hashlib.md5(url.encode()).hexdigest()
+    # Diese Methode sollte genau die gleiche sein wie beim Erzeugen der Short URLs
+    return hashlib.md5(url.encode('utf-8')).hexdigest()[:10]  # Kürzen auf die ersten 10 Zeichen
 
+# Befehl zum Entfernen von Streams
 @bot.message_handler(commands=['remove'])
 def remove(message):
     if str(message.chat.id) == TELEGRAM_CHAT_ID:
-        markup = telebot.types.InlineKeyboardMarkup(row_width=1)
-        
-        # Erstelle Inline-Buttons für jede Stream-URL
-        for stream in config['twitch_streams']:
-            url = stream['url']
-            short_url = shorten_url(url)
-            button = telebot.types.InlineKeyboardButton(text=url, callback_data=f'del_twitch_{short_url}')
-            markup.add(button)
-        for stream in config['youtube_streams']:
-            url = stream['url']
-            short_url = shorten_url(url)
-            button = telebot.types.InlineKeyboardButton(text=url, callback_data=f'del_youtube_{short_url}')
-            markup.add(button)
-        for stream in config['qdance_streams']:
-            url = stream['url']
-            short_url = shorten_url(url)
-            button = telebot.types.InlineKeyboardButton(text=url, callback_data=f'del_qdance_{short_url}')
-            markup.add(button)
-        
-        bot.send_message(message.chat.id, "Select a stream to delete:", reply_markup=markup)
+        show_delete_menu(message.chat.id)
     else:
         bot.send_message(message.chat.id, "Unauthorized access.")
 
+# Callback-Handler für das Löschen von Streams
 @bot.callback_query_handler(func=lambda call: call.data.startswith('del_'))
 def handle_delete_callback(call):
     _, stream_type, short_url = call.data.split('_', 2)
     
-    # Konvertiere den Hash zurück zur Original-URL
-    url = next((stream['url'] for stream in config[f'{stream_type}_streams'] if shorten_url(stream['url']) == short_url), None)
+    # Debug-Ausgaben hinzufügen
+    print(f"Received callback data: {call.data}")
+    print(f"Parsed stream_type: {stream_type}, short_url: {short_url}")
+    
+    url = None
+    for stream in config.get(f'{stream_type}_streams', []):
+        stream_url = stream['url']
+        stream_short_url = shorten_url(stream_url)
+        print(f"Checking stream URL: {stream_url}, Shortened: {stream_short_url}, Target Short URL: {short_url}")
+        if stream_short_url == short_url:
+            url = stream_url
+            break
+    
+    print(f"Short URL: {short_url}, Found URL: {url}")
     
     if url:
-        # Entferne die URL aus der Konfiguration
         config[f'{stream_type}_streams'] = [stream for stream in config[f'{stream_type}_streams'] if stream['url'] != url]
-        save_config(config)  # Speichert die aktualisierte Konfiguration
+        save_config(config)
         
-        # Bestätige die Löschung
         bot.edit_message_text(
             chat_id=call.message.chat.id,
             message_id=call.message.message_id,
@@ -463,27 +459,7 @@ def handle_delete_callback(call):
             parse_mode='Markdown'
         )
         
-        # Zeige das Menü mit den verbleibenden Streams zum Löschen erneut an
-        markup = telebot.types.InlineKeyboardMarkup(row_width=1)
-        
-        # Erstelle Inline-Buttons für jede verbleibende Stream-URL
-        for stream in config['twitch_streams']:
-            url = stream['url']
-            short_url = shorten_url(url)
-            button = telebot.types.InlineKeyboardButton(text=url, callback_data=f'del_twitch_{short_url}')
-            markup.add(button)
-        for stream in config['youtube_streams']:
-            url = stream['url']
-            short_url = shorten_url(url)
-            button = telebot.types.InlineKeyboardButton(text=url, callback_data=f'del_youtube_{short_url}')
-            markup.add(button)
-        for stream in config['qdance_streams']:
-            url = stream['url']
-            short_url = shorten_url(url)
-            button = telebot.types.InlineKeyboardButton(text=url, callback_data=f'del_qdance_{short_url}')
-            markup.add(button)
-        
-        bot.send_message(call.message.chat.id, "Select a stream to delete:", reply_markup=markup)
+        show_delete_menu(call.message.chat.id)
         
     else:
         bot.edit_message_text(
