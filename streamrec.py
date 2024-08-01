@@ -606,22 +606,65 @@ def status(message):
     else:
         bot.send_message(message.chat.id, "Unauthorized access.")
 
+from telebot import types
+
 @bot.message_handler(func=lambda message: message.text == 'Delete File')
 def handle_delete_file(message):
-    if str(message.chat.id) == TELEGRAM_CHAT_ID:
-        files = get_recorded_files()
-        if not files:
-            bot.send_message(message.chat.id, "No recorded files found.")
-            return
-        
-        markup = telebot.types.InlineKeyboardMarkup()
-        for file in files:
-            button = telebot.types.InlineKeyboardButton(text=file, callback_data=f'deletefile_{file}')
-            markup.add(button)
-        
-        bot.send_message(message.chat.id, "Select a file to delete:", reply_markup=markup)
+    files = get_recorded_files()
+    if not files:
+        bot.send_message(message.chat.id, "No recorded files found.")
+        return
+
+    markup = types.InlineKeyboardMarkup()
+    for file in files:
+        button = types.InlineKeyboardButton(text=file, callback_data=f'confirm_delete_{file}')
+        markup.add(button)
+
+    bot.send_message(message.chat.id, "Select a file to delete:", reply_markup=markup)
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith('confirm_delete_'))
+def handle_delete_file_callback(call):
+    file_name = call.data[len('confirm_delete_'):]
+    markup = types.InlineKeyboardMarkup()
+    
+    confirm_button = types.InlineKeyboardButton(text="Confirm", callback_data=f'deletefile_{file_name}')
+    cancel_button = types.InlineKeyboardButton(text="Cancel", callback_data='cancel_delete')
+    markup.add(confirm_button, cancel_button)
+
+    bot.send_message(call.message.chat.id, f"Are you sure you want to delete the file `{file_name}`?", reply_markup=markup)
+    bot.answer_callback_query(call.id)
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith('deletefile_'))
+def handle_delete_confirmed(call):
+    file_name = call.data[len('deletefile_'):]
+    file_path = os.path.join(RECORDING_PATH, file_name)
+
+    if os.path.exists(file_path):
+        os.remove(file_path)
+        bot.edit_message_text(
+            chat_id=call.message.chat.id,
+            message_id=call.message.message_id,
+            text=f"File `{file_name}` has been deleted.",
+            parse_mode='Markdown'
+        )
     else:
-        bot.send_message(message.chat.id, "Unauthorized access.")
+        bot.edit_message_text(
+            chat_id=call.message.chat.id,
+            message_id=call.message.message_id,
+            text=f"File `{file_name}` not found.",
+            parse_mode='Markdown'
+        )
+
+    bot.answer_callback_query(call.id)
+
+@bot.callback_query_handler(func=lambda call: call.data == 'cancel_delete')
+def handle_cancel_delete(call):
+    bot.edit_message_text(
+        chat_id=call.message.chat.id,
+        message_id=call.message.message_id,
+        text="File deletion has been cancelled."
+    )
+    bot.answer_callback_query(call.id)
 
 @bot.message_handler(commands=['help'])
 def help(message):
