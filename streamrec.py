@@ -46,8 +46,9 @@ def show_main_menu(chat_id):
     item3 = telebot.types.KeyboardButton('Delete Stream')
     item4 = telebot.types.KeyboardButton('List Streams')
     item5 = telebot.types.KeyboardButton('Status')
-    item6 = telebot.types.KeyboardButton('Donate')  # Add a Donate button
-    markup.add(item1, item2, item3, item4, item5, item6)
+    item6 = telebot.types.KeyboardButton('Delete File')
+    item7 = telebot.types.KeyboardButton('Donate')
+    markup.add(item1, item2, item3, item4, item5, item6, item7)
     bot.send_message(chat_id, "Select an option:", reply_markup=markup)
 
 def show_stop_menu(chat_id):
@@ -172,6 +173,53 @@ def start_qdance_recordings():
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         path = os.path.join(RECORDING_PATH, 'qdance_{}_{}.mp4'.format(url.split('/')[-1], timestamp))
         Thread(target=record_qdance_stream, args=(url, path, QDANCE_USERNAME, QDANCE_PASSWORD, datetime.now())).start()
+
+def get_recorded_files():
+    files = os.listdir(RECORDING_PATH)
+    return [f for f in files if os.path.isfile(os.path.join(RECORDING_PATH, f))]
+
+@bot.message_handler(commands=['deletefile'])
+def delete_file(message):
+    if str(message.chat.id) == TELEGRAM_CHAT_ID:
+        files = get_recorded_files()
+        if not files:
+            bot.send_message(message.chat.id, "No recorded files found.")
+            return
+        
+        markup = telebot.types.InlineKeyboardMarkup()
+        for file in files:
+            button = telebot.types.InlineKeyboardButton(text=file, callback_data=f'deletefile_{file}')
+            markup.add(button)
+        
+        bot.send_message(message.chat.id, "Select a file to delete:", reply_markup=markup)
+    else:
+        bot.send_message(message.chat.id, "Unauthorized access.")
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith('deletefile_'))
+def handle_delete_file_callback(call):
+    if str(call.message.chat.id) == TELEGRAM_CHAT_ID:
+        file_name = call.data[len('deletefile_'):]
+        file_path = os.path.join(RECORDING_PATH, file_name)
+        
+        if os.path.exists(file_path):
+            os.remove(file_path)
+            bot.edit_message_text(
+                chat_id=call.message.chat.id,
+                message_id=call.message.message_id,
+                text=f"File `{file_name}` has been deleted.",
+                parse_mode='Markdown'
+            )
+        else:
+            bot.edit_message_text(
+                chat_id=call.message.chat.id,
+                message_id=call.message.message_id,
+                text=f"File `{file_name}` not found.",
+                parse_mode='Markdown'
+            )
+        
+        bot.answer_callback_query(call.id)
+    else:
+        bot.answer_callback_query(call.id, "Unauthorized access.")
 
 @bot.message_handler(commands=['record'])
 def record(message):
@@ -431,8 +479,9 @@ def show_menu(message):
         item3 = telebot.types.KeyboardButton('Delete Stream')
         item4 = telebot.types.KeyboardButton('List Streams')
         item5 = telebot.types.KeyboardButton('Status')
-        item6 = telebot.types.KeyboardButton('Donate')
-        markup.add(item1, item2, item3, item4, item5, item6)
+        item6 = telebot.types.KeyboardButton('Delete File')
+        item7 = telebot.types.KeyboardButton('Donate')
+        markup.add(item1, item2, item3, item4, item5, item6, item7)
         
         bot.send_message(message.chat.id, "Please select an option:", reply_markup=markup)
 
@@ -557,6 +606,22 @@ def status(message):
     else:
         bot.send_message(message.chat.id, "Unauthorized access.")
 
+@bot.message_handler(func=lambda message: message.text == 'Delete File')
+def handle_delete_file(message):
+    if str(message.chat.id) == TELEGRAM_CHAT_ID:
+        files = get_recorded_files()
+        if not files:
+            bot.send_message(message.chat.id, "No recorded files found.")
+            return
+        
+        markup = telebot.types.InlineKeyboardMarkup()
+        for file in files:
+            button = telebot.types.InlineKeyboardButton(text=file, callback_data=f'deletefile_{file}')
+            markup.add(button)
+        
+        bot.send_message(message.chat.id, "Select a file to delete:", reply_markup=markup)
+    else:
+        bot.send_message(message.chat.id, "Unauthorized access.")
 
 @bot.message_handler(commands=['help'])
 def help(message):
