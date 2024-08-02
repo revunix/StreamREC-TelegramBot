@@ -82,7 +82,33 @@ def record_twitch_stream(url, path, start_time):
                 if process.poll() is not None:
                     # Der Stream wurde nicht mehr aufgenommen
                     if process.returncode == 0:
-                        # Erfolgreich aufgenommen
+                        # Erfolgreich aufgenommen, beginne mit der Nachbearbeitung
+                        print(f"Recording completed for URL `{url}`. Starting post-processing...")
+                        
+                        # Definiere die Pfade für Eingabe- und Ausgabedateien
+                        input_file = path
+                        output_file = os.path.splitext(path)[0] + '_processed.mp4'
+                        
+                        # Führe den ffmpeg-Befehl aus
+                        ffmpeg_command = ['ffmpeg', '-i', input_file, '-c:v', 'copy', '-c:a', 'copy', output_file]
+                        print(f"Running ffmpeg command: {' '.join(ffmpeg_command)}")
+                        
+                        try:
+                            ffmpeg_process = subprocess.Popen(ffmpeg_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                            stdout, stderr = ffmpeg_process.communicate()
+                            
+                            if ffmpeg_process.returncode == 0:
+                                print(f"Post-processing completed. Processed file: `{output_file}`")
+                                
+                                # Alte Datei löschen
+                                if os.path.exists(input_file):
+                                    os.remove(input_file)
+                                    print(f"Deleted old file: `{input_file}`")
+                            else:
+                                print(f"Post-processing failed. stderr: {stderr.decode()}")
+                        except Exception as e:
+                            print(f"Exception occurred during ffmpeg processing: {e}")
+                        
                         break
                     else:
                         # Fehler beim Aufnehmen des Streams
@@ -94,14 +120,39 @@ def record_twitch_stream(url, path, start_time):
                 # Überprüfe, ob der Stream gestoppt werden soll
                 if url not in active_recordings:
                     process.terminate()
-                    print(f"Recording stopped for URL `{url}`.")
+                    print(f"Recording stopped for URL `{url}`. Starting post-processing...")
+                    
+                    # Nachbearbeitung der Datei starten
+                    input_file = path
+                    output_file = os.path.splitext(path)[0] + '_processed.mp4'
+                    
+                    # Führe den ffmpeg-Befehl aus
+                    ffmpeg_command = ['ffmpeg', '-i', input_file, '-c:v', 'copy', '-c:a', 'copy', output_file]
+                    print(f"Running ffmpeg command: {' '.join(ffmpeg_command)}")
+                    
+                    try:
+                        ffmpeg_process = subprocess.Popen(ffmpeg_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                        stdout, stderr = ffmpeg_process.communicate()
+                        
+                        if ffmpeg_process.returncode == 0:
+                            print(f"Post-processing completed. Processed file: `{output_file}`")
+                            
+                            # Alte Datei löschen
+                            if os.path.exists(input_file):
+                                os.remove(input_file)
+                                print(f"Deleted old file: `{input_file}`")
+                        else:
+                            print(f"Post-processing failed. stderr: {stderr.decode()}")
+                    except Exception as e:
+                        print(f"Exception occurred during ffmpeg processing: {e}")
+                    
                     return
         except KeyboardInterrupt:
             print(f"Recording interrupted for URL `{url}`.")
             process.terminate()
             active_recordings.pop(url, None)
             return
-
+        
 def record_youtube_stream(url, path, start_time):
     while True:
         # Überprüfen, ob der Stream bereits aktiv ist
