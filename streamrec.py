@@ -7,9 +7,9 @@ import telebot
 import time
 import threading
 import hashlib
+from telebot import types
 from threading import Thread
 from datetime import datetime
-
 
 # Lade Konfiguration
 def load_config():
@@ -28,6 +28,7 @@ RECORDING_PATH = config['recording_path']
 TWITCH_PROXY = "https://as.luminous.dev"
 QDANCE_USERNAME = config['qdance_credentials']['username']
 QDANCE_PASSWORD = config['qdance_credentials']['password']
+WEB_LINK_BASE = config['WEB_LINK_BASE']
 
 bot = telebot.TeleBot(TELEGRAM_BOT_TOKEN)
 
@@ -47,8 +48,9 @@ def show_main_menu(chat_id):
     item4 = telebot.types.KeyboardButton('List Streams')
     item5 = telebot.types.KeyboardButton('Status')
     item6 = telebot.types.KeyboardButton('Delete File')
-    item7 = telebot.types.KeyboardButton('Donate')
-    markup.add(item1, item2, item3, item4, item5, item6, item7)
+    item7 = telebot.types.KeyboardButton('View Data')
+    item8 = telebot.types.KeyboardButton('Donate')
+    markup.add(item1, item2, item3, item4, item5, item6, item7, item8)
     bot.send_message(chat_id, "Select an option:", reply_markup=markup)
 
 def show_stop_menu(chat_id):
@@ -480,8 +482,9 @@ def show_menu(message):
         item4 = telebot.types.KeyboardButton('List Streams')
         item5 = telebot.types.KeyboardButton('Status')
         item6 = telebot.types.KeyboardButton('Delete File')
-        item7 = telebot.types.KeyboardButton('Donate')
-        markup.add(item1, item2, item3, item4, item5, item6, item7)
+        item7 = telebot.types.KeyboardButton('View Data')
+        item8 = telebot.types.KeyboardButton('Donate')
+        markup.add(item1, item2, item3, item4, item5, item6, item7, item8)
         
         bot.send_message(message.chat.id, "Please select an option:", reply_markup=markup)
 
@@ -606,8 +609,6 @@ def status(message):
     else:
         bot.send_message(message.chat.id, "Unauthorized access.")
 
-from telebot import types
-
 @bot.message_handler(func=lambda message: message.text == 'Delete File')
 def handle_delete_file(message):
     files = get_recorded_files()
@@ -682,5 +683,24 @@ def help(message):
         bot.send_message(TELEGRAM_CHAT_ID, help_text)
     else:
         bot.send_message(message.chat.id, "Unauthorized access.")
+
+@bot.message_handler(func=lambda message: message.text == 'View Data')
+def handle_view_data(message):
+    if str(message.chat.id) == TELEGRAM_CHAT_ID:
+        files = get_recorded_files()
+        if not files:
+            bot.send_message(message.chat.id, "No recorded files found.")
+            return
+
+        markup = telebot.types.InlineKeyboardMarkup()
+        for file in files:
+            file_link = WEB_LINK_BASE + file
+            button = telebot.types.InlineKeyboardButton(text=file, url=file_link)
+            markup.add(button)
+        
+        bot.send_message(message.chat.id, "Select a file to view:", reply_markup=markup)
+    else:
+        bot.send_message(message.chat.id, "Unauthorized access.")
+
 
 bot.polling()
