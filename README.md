@@ -11,23 +11,26 @@ This script is designed to manage and record live streams from various platforms
 - **Telegram Bot Integration**: Interact with the script via a Telegram bot, which provides a user-friendly interface for managing recordings.
 - **Donation Support**: Includes an option for users to support the project through donations.
 
-## Configuration
+# Configuration
 
 The script requires a `config.json` file for setup. This file should contain:
-- `telegram_bot_token`: The token for your Telegram bot.
-- `telegram_chat_id`: The chat ID for Telegram bot interactions.
-- `recording_path`: The directory where recordings will be saved.
-- `qdance_credentials`: Your Q-dance login credentials (username and password).
 
-## How to Use
+- **telegram_bot_token**: The token for your Telegram bot.
+- **telegram_chat_id**: The chat ID for Telegram bot interactions.
+- **recording_path**: The directory where recordings will be saved.
+- **qdance_credentials**: Your Q-dance login credentials (username and password).
+- **WEB_LINK_BASE**: The base URL for accessing recorded files (e.g., `https://domain.tld/folder`).
 
-1. **Start Recording**: Use the `/record` command to begin recording all streams listed in the configuration.
-2. **Stop Recording**: Use the `/save` command to stop all active recordings.
-3. **Add a Stream**: Use the `/add` command and follow the prompts to add Twitch, YouTube, or Q-dance streams.
-4. **Delete a Stream**: Use the `/remove` command to delete a specific stream.
-5. **List Streams**: Use the `/list` command to view all configured streams.
-6. **Check Status**: Use the `/status` command to get the status of ongoing recordings.
-7. **Help**: Use the `/help` command to get a list of available commands and their usage.
+# How to Use
+
+- **Start Recording**: Use the `/record` command to begin recording all streams listed in the configuration.
+- **Stop Recording**: Use the `/save` command to stop all active recordings.
+- **Add a Stream**: Use the `/add` command and follow the prompts to add Twitch, YouTube, or Q-dance streams.
+- **Delete a Stream**: Use the `/remove` command to delete a specific stream.
+- **List Streams**: Use the `/list` command to view all configured streams.
+- **Check Status**: Use the `/status` command to get the status of ongoing recordings.
+- **Delete File**: Use the `/deletefile` command to delete a recorded file. You will be prompted to choose a file to delete, and a confirmation message will be displayed before the file is deleted.
+- **Help**: Use the `/help` command to get a list of available commands and their usage.
 
 ## Dependencies
 
